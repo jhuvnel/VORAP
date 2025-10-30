@@ -1,7 +1,7 @@
 
 
 
-filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240418 Pearl eeVOR';
+filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20251028 Quin eeVOR';
 % isDC = 1;
 % isAdaptation = 0;
 % isNystagmus = 0;
@@ -60,7 +60,7 @@ for iFolder = 1:length(foldernames)
         stimFlag.String = [];
         stimFlag.Time = [];
         stimFlag.CycleTiming = [];
-        if ~contains(foldernames{iFolder},'nystagmus') && ~contains(foldernames{iFolder},'adaptation')
+        if ~contains(foldernames{iFolder},{'nystagmus','adaptation'})
             [stimTimingChan, stimTimingType] = getTimingMarkerInfo(expDate);
             TimingInfo_raw = [];
             [TextMarkerInfo_raw,h2] = SONGetChannel(fid,30);
@@ -68,12 +68,15 @@ for iFolder = 1:length(foldernames)
             stimFlag.Time = TextMarkerInfo_raw.timings;
 
             % if it is a PFM file, there are two flags per stim
-            if contains(filenames{iFile},'PFM')
+            if contains(stimFlag.String(1,:),{'PFM','Pulse'})
+                stimFlag.String(contains(string(stimFlag.String),'trash'),:) = [];
                 str = deblank(stimFlag.String(1:2:end,:));
                 str2 = deblank(stimFlag.String(2:2:end,:));
-                strIdx = strfind(str,' [');
-                strIdx2 = strfind(str2,' [');
-                stimFlag.String = [str(1:strIdx) str2(1:strIdx2-1)];
+                strIdx = strfind(string(str),' [');
+                strIdx2 = strfind(string(str2),' [');
+                strIdx = [strIdx{:}];
+                strIdx2 = [strIdx2{:}];
+                stimFlag.String = [str(:,1:[strIdx]) str2(:,1:[strIdx2]-1)];
                 stimFlag.Time = stimFlag.Time(2:2:end);
             end
 
@@ -83,8 +86,21 @@ for iFolder = 1:length(foldernames)
                     for iFlag = 1:length(stimFlag.Time)
                         cycleInfo = extract(stimFlag.String(iFlag,:), digitsPattern(1,3)+'x'+wildcardPattern(2,30)+'ms');
                         nCycles = str2double(extractBefore(cycleInfo, 'x'));
-                        cycleLength = str2double(extractBetween(cycleInfo,'x','ms'))/1000;
-                        waveformLength = nCycles*(cycleLength); % in s
+                        if matches(expDate, '20240403') && contains(foldernames{iFolder},'square')
+                            nCycles = nCycles/2;
+                            nCycles_str = extractBetween(stimFlag.String,'PFMRamp ','x');
+                            nCycles_str_new = string(nCycles);
+                            stimFlag.String = replace(stimFlag.String,['PFMRamp ' + string(nCycles_str) + 'x'],['PFMRamp '+ nCycles_str_new + 'x']);
+                        end
+
+                        cycleLengthInfo = str2double(split(extractBetween(cycleInfo,'x','ms'),{'/','+','*'}));
+                        if contains(cycleInfo, '/') && contains(cycleInfo, '+')
+                            cycleLengthInfo = vertcat(cycleLengthInfo(1:end-2),prod(cycleLengthInfo(end-1:end)));
+                        elseif contains(cycleInfo, '/')
+                            cycleLengthInfo = vertcat(4*cycleLengthInfo(1),2*cycleLengthInfo(2),2*cycleLengthInfo(3));
+                        end
+                        cycleLength = sum(cycleLengthInfo)/1000;
+                        waveformLength(iFlag) = nCycles*(cycleLength); % in s
                         startStim_t = stimFlag.Time(iFlag);
                         endStim_t = stimFlag.Time(iFlag) + waveformLength;
                         stimFlag.CycleTiming{iFlag,1} = [startStim_t:cycleLength:endStim_t-cycleLength]' - startStim_t;
@@ -99,28 +115,41 @@ for iFolder = 1:length(foldernames)
 
                     % use keithley phase markers to find cycle timing
                     for iFlag = 1:length(stimFlag.Time)
-                        closest_start_t = interp1([0 TimingInfo_raw'],[0 TimingInfo_raw'],stimFlag.Time(iFlag),'nearest'); % need to add 0 here to interpolate values below TimingInfo_raw(1)
-                        startStim_idx = find(TimingInfo_raw == closest_start_t);
-                        cycleInfo = extract(stimFlag.String(iFlag,:), digitsPattern(1,3)+'x'+wildcardPattern(2,30)+'ms');
-                        nCycles = str2double(extractBefore(cycleInfo, 'x'));
-                        cycleLengthInfo = str2double(split(extractBetween(cycleInfo,'x','ms'),{'/','+','*'}));
-                        if contains(cycleInfo, '/') && contains(cycleInfo, '+')
-                            cycleLengthInfo = vertcat(cycleLengthInfo(1:end-2),prod(cycleLengthInfo(end-1:end)));
-                        elseif contains(cycleInfo, '/')
-                            cycleLengthInfo = vertcat(4*cycleLengthInfo(1),2*cycleLengthInfo(2),2*cycleLengthInfo(3));;
-                        end
-                        cycleLength = sum(cycleLengthInfo)/1000;
-                        waveformLength(iFlag) = nCycles*(cycleLength); % in s
-                        % sometimes the spike2 file cuts off before
-                        % stimulation is finished, so we will remove these
-                        % files, otherwise stimFlag will be updated with
-                        % the timing from the phase marker
-                        if isempty(startStim_idx) || startStim_idx + nCycles - 1 > length(TimingInfo_raw)
-                            flagsToBeRemoved = [flagsToBeRemoved iFlag];
-                            stimFlag.CycleTiming{iFlag,1} = [];
+                        if TimingInfo_raw(1) == 0
+                            closest_start_t = interp1(TimingInfo_raw',TimingInfo_raw',stimFlag.Time(iFlag),'nearest'); % need to add 0 here to interpolate values below TimingInfo_raw(1)
                         else
-                            stimFlag.CycleTiming{iFlag,1} = TimingInfo_raw(startStim_idx:startStim_idx + nCycles-1) - TimingInfo_raw(startStim_idx);
-                            stimFlag.Time(iFlag) = closest_start_t;
+                            closest_start_t = interp1([0 TimingInfo_raw'],[0 TimingInfo_raw'],stimFlag.Time(iFlag),'nearest'); % need to add 0 here to interpolate values below TimingInfo_raw(1)
+                        end
+                        startStim_idx = find(TimingInfo_raw == closest_start_t);
+                        % cycleInfo = extract(stimFlag.String(iFlag,:), digitsPattern(1,3)+'x'+wildcardPattern(2,30)+'ms');
+                        cycleInfo = extract(stimFlag.String(iFlag,:), digitsPattern(1,3)+'x'+wildcardPattern(2,30) + ' ');
+                        nCycles = str2double(extractBefore(cycleInfo, 'x'));
+                        % cycleLengthInfo = str2double(split(extractBetween(cycleInfo,'x','ms'),{'/','+','*'}));
+                        cycleLengthInfo = str2double(split(extractBetween(cycleInfo,'x',' '),{'/','+','*'}));
+                        if ~isempty(nCycles)
+                            if contains(cycleInfo, '/') && contains(cycleInfo, '+') || contains(stimFlag.String(iFlag,:),'Trap')
+                                cycleLengthInfo = vertcat(cycleLengthInfo(1:4),4*cycleLengthInfo(end));
+                            elseif contains(stimFlag.String(iFlag,:), 'HalfSine')
+                                frequency = str2double(extractBetween(stimFlag.String(iFlag,:),'x',' +'))/1000; % in cycles/ms
+                                periodLength = 1/frequency; % in ms
+                                ipg = str2double(extractBetween(stimFlag.String(iFlag,:),'+ ',' [')); % in ms
+                                cycleLengthInfo = [periodLength;ipg*2]; % in ms
+                            elseif contains(cycleInfo, '/')
+                                cycleLengthInfo = vertcat(4*cycleLengthInfo(1),2*cycleLengthInfo(2),2*cycleLengthInfo(3));
+                            end
+                            cycleLength = sum(cycleLengthInfo)/1000;
+                            waveformLength(iFlag) = nCycles*(cycleLength); % in s
+                            % sometimes the spike2 file cuts off before
+                            % stimulation is finished, so we will remove these
+                            % files, otherwise stimFlag will be updated with
+                            % the timing from the phase marker
+                            if isempty(startStim_idx) || startStim_idx + nCycles - 1 > length(TimingInfo_raw)
+                                flagsToBeRemoved = [flagsToBeRemoved iFlag];
+                                stimFlag.CycleTiming{iFlag,1} = [];
+                            else
+                                stimFlag.CycleTiming{iFlag,1} = TimingInfo_raw(startStim_idx:startStim_idx + nCycles-1) - TimingInfo_raw(startStim_idx);
+                                stimFlag.Time(iFlag) = closest_start_t;
+                            end
                         end
                     end
 
@@ -129,11 +158,16 @@ for iFolder = 1:length(foldernames)
                     stimFlag.CycleTiming(flagsToBeRemoved) = [];
                     waveformLength(flagsToBeRemoved) = [];
             end
-
-        else % is a nystagmus recording
-            stimFlag.String = char('Nystagmus');
-            stimFlag.Time = 0.001;
+        end
+        if contains(foldernames{iFolder},'nystagmus') || contains(foldernames{iFolder},'adaptation') % is a nystagmus recording
+            stimFlag.String = repmat(char('Nystagmus'),size(stimFlag.String,1),1);
+            if isempty(stimFlag.String)
+                stimFlag.String = char('Nystagmus');
+                stimFlag.Time = 0.001;
+            end
             stimFlag.CycleTiming{1} = [];
+            waveformLength = length(directional_X_raw);
+            nCycles = 1;
         end
 
 
@@ -317,30 +351,30 @@ for iFolder = 1:length(foldernames)
             % experimental records
             stimE = str2double(stimFlag.String(iStimFlag,4));
             refE = str2double(stimFlag.String(iStimFlag,6));
-            switch stimE
-                case 1
-                    if contains(animal,'P')
-                        stimAxis = "LARP";
-                    end
-                case 2
-                    if contains(animal,'P')
-                        stimAxis = "LHRH";
-                    end
-                case 3
-                    if contains(animal,'P')
-                        stimAxis = "RALP";
-                    end
-                case 4 | 5
-                    if contains(animal,'P')
-                        stimAxis = "other";
-                    end
-            end
-            switch refE
-                case 4
-                    refEType = 'CC';
-                case 5
-                    refEType = 'Distant';
-            end
+            % switch stimE
+            %     case 1
+            %         if contains(animal,'P')
+            %             stimAxis = "LARP";
+            %         end
+            %     case 2
+            %         if contains(animal,'P')
+            %             stimAxis = "LHRH";
+            %         end
+            %     case 3
+            %         if contains(animal,'P')
+            %             stimAxis = "RALP";
+            %         end
+            %     case 4 | 5
+            %         if contains(animal,'P')
+            %             stimAxis = "other";
+            %         end
+            % end
+            % switch refE
+            %     case 4
+            %         refEType = 'CC';
+            %     case 5
+            %         refEType = 'Distant';
+            % end
 
             %         expRecords(stimCount).File_Name = stimFileName;
             %         expRecords(stimCount).Date = expDate;
@@ -506,17 +540,23 @@ t=Data.Time_Stim;
 figure,
 hold on
 plot(stimFlag.Time,repmat(2000,1,length(stimFlag.Time)),'r*')
-plot(t,Data.RE_Vel_LARP, 'g')
-plot(t,Data.RE_Vel_RALP, 'b')
-plot(t,Data.RE_Vel_Z, 'r')
+% plot(t,Data.RE_Vel_LARP, 'g')
+% plot(t,Data.RE_Vel_RALP, 'b')
+% plot(t,Data.RE_Vel_Z, 'r')
+plot(t,Data.RE_Velocity_LARP, 'g')
+plot(t,Data.RE_Velocity_RALP, 'b')
+plot(t,Data.RE_Velocity_Z, 'r')
 
 t_start = round(stimFlag.Time(14)*1000);
 t_end = round(stimFlag.Time(15)*1000);
 figure,
 hold on
-plot(t(t_start:t_end),Data.RE_Vel_LARP(t_start:t_end), 'g')
-plot(t(t_start:t_end),Data.RE_Vel_RALP(t_start:t_end), 'b')
-plot(t(t_start:t_end),Data.RE_Vel_Z(t_start:t_end), 'r')
+% plot(t(t_start:t_end),Data.RE_Vel_LARP(t_start:t_end), 'g')
+% plot(t(t_start:t_end),Data.RE_Vel_RALP(t_start:t_end), 'b')
+% plot(t(t_start:t_end),Data.RE_Vel_Z(t_start:t_end), 'r')
+plot(t(t_start:t_end),Data.RE_Velocity_LARP(t_start:t_end), 'g')
+plot(t(t_start:t_end),Data.RE_Velocity_RALP(t_start:t_end), 'b')
+plot(t(t_start:t_end),Data.RE_Velocity_Z(t_start:t_end), 'r')
 
 figure, plot(t(2:end), directional_X_raw)
 hold on;
@@ -529,3 +569,109 @@ t=1e-6*(h.start+h.sampleinterval*double(0:(n-1))');  % us->s
 
 
 % #cycles x P1D(ms) \ IPG(ms) \ P2D(ms) \ stim gap(ms) + #ramps * ramp duration(ms)
+
+%% plot nystagmus
+expDate = '20241030';
+
+expFolders = {dir('R:\Vesper, Evan\Monkey DC eeVOR Data').name}';
+expFolder_thisexp = expFolders{contains(expFolders,expDate)};
+files = dir(fullfile('R:\Vesper, Evan\Monkey DC eeVOR Data',expFolder_thisexp,'Segments'));
+isFileFlag = [files.isdir];
+subfoldernames = {files(isFileFlag).name}';
+adaptation_foldernames = subfoldernames(contains(subfoldernames,{'adaptation','nystagmus'}));
+adaptation_filepath = fullfile('R:\Vesper, Evan\Monkey DC eeVOR Data',expFolder_thisexp,'Segments',adaptation_foldernames);
+
+for iAdaptation = 1:length(adaptation_filepath)
+    if contains(adaptation_foldernames{iAdaptation},'nystagmus')
+        baseline = adaptation_foldernames{iAdaptation};
+    elseif contains(adaptation_foldernames{iAdaptation},'DC')
+        if contains(adaptation_foldernames{iAdaptation},'cathodic')
+            baseline = '-' + string(regexp(adaptation_foldernames{iAdaptation},'\d*','Match'))+'uA adaptation';
+        else
+            baseline = string(regexp(adaptation_foldernames{iAdaptation},'\d*','Match'))+'uA adaptation';
+        end
+    else
+        baseline = string(regexp(adaptation_foldernames{iAdaptation},'\d*','Match'))+'pps adaptation';
+    end
+
+    adaptationFiles = {dir(fullfile(adaptation_filepath{iAdaptation},'*.mat')).name}';
+
+    clear Data_adaptation;
+    for iFile = 1:length(adaptationFiles)
+        % Data_adaptation(iFile) = [];
+        Data_adaptation(iFile) = load(fullfile(adaptation_filepath{iAdaptation},adaptationFiles{iFile})).Data;
+    
+
+    % Data_adaptation.Data_RE_Pos_Z = resample(cat(1,Data_adaptation.RE_Position_Z),1,50);
+    % Data_adaptation.Data_RE_Pos_X = resample(cat(1,Data_adaptation.RE_Position_X),1,50);
+    % Data_adaptation.Data_RE_Pos_Y = resample(cat(1,Data_adaptation.RE_Position_Y),1,50);
+    % Data_adaptation.Data_LE_Pos_Z = resample(cat(1,Data_adaptation.LE_Position_Z),1,50);
+    % Data_adaptation.Data_LE_Pos_X = resample(cat(1,Data_adaptation.LE_Position_X),1,50);
+    % Data_adaptation.Data_LE_Pos_Y = resample(cat(1,Data_adaptation.LE_Position_Y),1,50);
+
+    Data_adaptation.Data_RE_Pos_Z = sgolayfilt(Data_adaptation.RE_Position_Z,2,75);
+    Data_adaptation.Data_RE_Pos_X = sgolayfilt(Data_adaptation.RE_Position_X,2,45);
+    Data_adaptation.Data_RE_Pos_Y = sgolayfilt(Data_adaptation.RE_Position_Y,2,55);
+    Data_adaptation.Data_LE_Pos_Z = sgolayfilt(Data_adaptation.LE_Position_Z,2,25);
+    Data_adaptation.Data_LE_Pos_X = sgolayfilt(Data_adaptation.LE_Position_X,2,25);
+    Data_adaptation.Data_LE_Pos_Y = sgolayfilt(Data_adaptation.LE_Position_Y,2,25);
+
+    % Ydata = [sgolayfilt(ZVelData,2,25);...
+    %     sgolayfilt(XVelData,2,35);...
+    %     sgolayfilt(YVelData,2,55)];
+
+    % This system code marks that no additional manipulations of the raw data
+    % are required.
+    data_rot = 3;
+    % If, regardless of the system used to record the eye movement data,
+    % the data is presented in Fick angles, change the DAQ_code to '5'
+    DAQ_code = 5;
+    OutputFormat = 1; % fick
+    Data_In = Data_adaptation;
+
+    tau = 700; %length(ZVelData)*0.5;
+    [New_Ang_Vel] = voma__processeyemovements([],[],[],[],0,data_rot,DAQ_code,OutputFormat,Data_In);
+    YdataLARP = voma__irlssmooth(New_Ang_Vel.RE_Vel_LARP,tau);
+    YdataRALP = voma__irlssmooth(New_Ang_Vel.RE_Vel_RALP,tau);
+    YdataZ = voma__irlssmooth(New_Ang_Vel.RE_Vel_Z,tau);
+
+    figure,
+    t = (1:length(New_Ang_Vel.RE_Vel_LARP))*50/1000/60;
+    hold on
+    plot(t,New_Ang_Vel.RE_Vel_LARP,'Color',[0.4660 0.6740 0.1880],'LineWidth',3)
+    plot(t,New_Ang_Vel.RE_Vel_RALP,'Color',[0 0.4470 0.7410],'LineWidth',3)
+    plot(t,New_Ang_Vel.RE_Vel_Z,'Color',[0.6350 0.0780 0.1840],'LineWidth',3)
+    xlabel('time (mins)')
+    
+    figure,
+    t = (1:length(New_Ang_Vel.RE_Vel_LARP))*50/1000/60;
+    hold on
+    plot(t,YdataLARP,'Color',[0.4660 0.6740 0.1880],'LineWidth',3)
+    plot(t,YdataRALP,'Color',[0 0.4470 0.7410],'LineWidth',3)
+    plot(t,YdataZ,'Color',[0.6350 0.0780 0.1840],'LineWidth',3)
+    xlabel('time (mins)')
+    title(baseline)
+
+    % tau = length(ZVelData)*0.02;
+
+    
+    % Ydata = [movmean(voma__irlssmooth(LARPVelData,75),tau)...
+    %     movmean(voma__irlssmooth(RALPVelData,75),tau)...
+    %     movmean(voma__irlssmooth(ZVelData,75),tau)];
+
+
+    % t = (1:length(Ydata))*50/1000/60;
+    % nexttile((iAdaptation*10) + 11,[1 2]),
+    % hold on
+    % plot(t,Ydata(:,1),'Color',[0.4660 0.6740 0.1880],'LineWidth',3)
+    % plot(t,Ydata(:,2),'Color',[0 0.4470 0.7410],'LineWidth',3)
+    % plot(t,Ydata(:,3),'Color',[0.6350 0.0780 0.1840],'LineWidth',3)
+    % yline(0,'--','Color','k','LineWidth',2)
+    % xlabel('time (mins)')
+    % ylabel('eye velocity (dps)')
+    % title(baseline)
+    % ax = gca;
+    % ax.XAxis.Exponent = 0;
+    % box off
+    end
+end

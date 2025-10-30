@@ -1,6 +1,6 @@
 % user input
 input_DPS = {'100'}; %dps to plot
-myFolder = 'R:\Mueller\Monkey Data\Pearl\20231117\'; % Define your working folder
+myFolder = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240912 Pearl Normal VOR and eeVOR\'; % Define your working folder
 
 % load results
 saveLoc = [myFolder, 'Figures\'];
@@ -16,9 +16,11 @@ if ~isfolder(saveLoc)
     return;
 end
 
-allData = voma_plotting_loadData(cyclesFolder);
+expType = 'RotaryVOR';
+M = 'P';
+allData = voma_plotting_loadData(expType,M);
 
-isDark = contains({allData(:).name},'Dark');
+isDark = contains({allData.LHRH(:).name},'Dark');
 isLight = ~isDark;
 lightCondition = {isDark};
 
@@ -33,28 +35,28 @@ for iDPS = 1:length(input_DPS)
         t_allCycles = tiledlayout(5,1);
         idxFiles = 1:nFiles;
         for iFile = idxFiles(lightCondition{iLightCond})
-            metaData = split(allData(iFile).name,'-'); % get exp conditions from file name
-            metaData{9} = strrep(metaData{9},'p','.'); % replace p with . (written as 0p2Hz in file name)
-            metaData{10} = metaData{10}(1:end-4); % remove ".mat"
+            metaData = split(allData.LHRH(iFile).name,'-'); % get exp conditions from file name
+            metaData{8} = strrep(metaData{8},'p','.'); % replace p with . (written as 0p2Hz in file name)
+            metaData{9} = metaData{9}(1:end-4); % remove ".mat"
 
-            isSpecifiedDPS = contains(metaData{10},input_DPS(iDPS));
+            isSpecifiedDPS = contains(metaData{9},input_DPS(iDPS));
 
             if isSpecifiedDPS
                 ax1 = nexttile(t);
 
                 hold on
-                allData(iFile).stim = reshape(allData(iFile).stim',1,[]) ;
-                t_ms = 1:length(allData(iFile).rz_cycavg);
-                shadedErrorBar(t_ms,allData(iFile).rz_cycavg,allData(iFile).rz_cycstd,'lineprops',{'r','LineWidth',2})
-                shadedErrorBar(t_ms,allData(iFile).rl_cycavg,allData(iFile).rl_cycstd,'lineprops',{'g:','LineWidth',2})
-                shadedErrorBar(t_ms,allData(iFile).rr_cycavg,allData(iFile).rr_cycstd,'lineprops',{'b--','LineWidth',2})
-                plot(allData(iFile).stim(t_ms),'k','LineWidth',2)
-                plot(allData(iFile).rz_cyc','Color',[1 0 0 0.3],'LineWidth',0.5)
-                plot(allData(iFile).rl_cyc','Color',[0 1 0 0.3],'LineWidth',0.5)
-                plot(allData(iFile).rr_cyc','Color',[0 0 1 0.3],'LineWidth',0.5)
+                allData.LHRH(iFile).stim = reshape(allData.LHRH(iFile).stim',1,[]) ;
+                t_ms = 1:length(allData.LHRH(iFile).rz_cycavg);
+                shadedErrorBar(t_ms,allData.LHRH(iFile).rz_cycavg,allData.LHRH(iFile).rz_cycstd,'lineprops',{'r','LineWidth',2})
+                shadedErrorBar(t_ms,allData.LHRH(iFile).rl_cycavg,allData.LHRH(iFile).rl_cycstd,'lineprops',{'g:','LineWidth',2})
+                shadedErrorBar(t_ms,allData.LHRH(iFile).rr_cycavg,allData.LHRH(iFile).rr_cycstd,'lineprops',{'b--','LineWidth',2})
+                plot(allData.LHRH(iFile).stim(t_ms),'k','LineWidth',2)
+                plot(allData.LHRH(iFile).rz_cyc','Color',[1 0 0 0.3],'LineWidth',0.5)
+                plot(allData.LHRH(iFile).rl_cyc','Color',[0 1 0 0.3],'LineWidth',0.5)
+                plot(allData.LHRH(iFile).rr_cyc','Color',[0 0 1 0.3],'LineWidth',0.5)
 
-                nCycles = mat2str(length(allData(iFile).cyclist));
-                title([metaData{9}, ', n = ',nCycles])
+                nCycles = mat2str(length(allData.LHRH(iFile).cyclist));
+                title([metaData{8}, ', n = ',nCycles])
 
                 if tilenum(ax1) == 3
                     xlabel('Time (ms)')
@@ -70,11 +72,11 @@ for iDPS = 1:length(input_DPS)
                 % plot all cycles
                 ax2 = nexttile(t_allCycles);
                 hold on 
-                t_s = (1:length(allData(iFile).stim))./1000;
-                plot(t_s,reshape(allData(iFile).rz_cyc',1,[]),'r','LineWidth',2)
-                plot(t_s,reshape(allData(iFile).rl_cyc',1,[]),'g--','LineWidth',2)
-                plot(t_s,reshape(allData(iFile).rr_cyc',1,[]),'b--','LineWidth',2)
-                plot(t_s,allData(iFile).stim,'k','LineWidth',2)
+                t_s = (1:length(allData.LHRH(iFile).stim))./1000;
+                plot(t_s,reshape(allData.LHRH(iFile).rz_cyc',1,[]),'r','LineWidth',2)
+                plot(t_s,reshape(allData.LHRH(iFile).rl_cyc',1,[]),'g--','LineWidth',2)
+                plot(t_s,reshape(allData.LHRH(iFile).rr_cyc',1,[]),'b--','LineWidth',2)
+                plot(t_s,allData.LHRH(iFile).stim,'k','LineWidth',2)
 
                 if tilenum(ax2) == 5
                     xlabel('Time (s)')
@@ -86,19 +88,19 @@ for iDPS = 1:length(input_DPS)
                     legend('Horizontal','LARP','RALP','Motion','Location','northoutside','Orientation','horizontal')
                 end
 
-                title([metaData{9}, ', n = ',nCycles])
+                title([metaData{8}, ', n = ',nCycles])
             end
         end
-    figureName = [metaData{4},' ',metaData{5},', ',metaData{6},', ',metaData{7},' ',metaData{8},', ',input_DPS{iDPS},'dps'];
+    figureName = [metaData{4},' ',metaData{5},', ',metaData{6},', ',metaData{7},', ',input_DPS{iDPS},'dps'];
     saveName = strrep(figureName,', ','-');
     saveName = strrep(saveName,' ','-');
     
-    title(t,"Cycle Average",[metaData{4},' ',metaData{5},', ',metaData{6},' ,',metaData{7},' ',metaData{8},', ',input_DPS{iDPS},'dps'])
+    title(t,"Cycle Average",[metaData{4},' ',metaData{5},', ',metaData{6},' ,',metaData{7},', ',input_DPS{iDPS},'dps'])
     filename = [saveLoc,saveName,'_cycleAverage'];
     saveas(f1,filename,'png')
     close(f1)
 
-    title(t_allCycles,"All Saved Cycles",[metaData{4},' ',metaData{5},', ',metaData{6},' ,',metaData{7},' ',metaData{8},', ',input_DPS{iDPS},'dps'])
+    title(t_allCycles,"All Saved Cycles",[metaData{4},' ',metaData{5},', ',metaData{6},' ,',metaData{7},', ',input_DPS{iDPS},'dps'])
     filename = [saveLoc,saveName,'_allSavedCycles'];
     saveas(f2,filename,'png')
     close(f2)

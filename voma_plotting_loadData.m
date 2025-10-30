@@ -66,7 +66,7 @@ end
 % load LHRH data for monkey M, experiment type expType
 cyclesFolder_LHRH = fullfile(animalData.LHRH,'Cycles\');
 
-filePattern = fullfile(cyclesFolder_LHRH, '*.mat');
+filePattern = fullfile(cyclesFolder_LHRH, ['*', expType,'*.mat']);
 fileCount = 0;
 for i = 1:length(filePattern)
     if ~isfolder(cyclesFolder_LHRH{i}) % check to make sure folder exists

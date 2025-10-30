@@ -1,18 +1,26 @@
 
-for iFile = 1:3
+for iFile = 1:4
     
     if iFile == 1
         clear all
-        filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240417 Pearl eeVOR\Cycles';
+        filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240417 Pearl eeVOR\Analyzed by KNM 20240516\Cycles';
         filename = 'ExperimentRecords_SquareWaves.csv';
+        iFile = 1;
     elseif iFile == 2
         clear all
-        filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240501 Pearl eeVOR\Cycles';
+        filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240501 Pearl eeVOR\Analyzed by KNM 20240516\Cycles';
         filename = 'ExperimentRecords_SquareWaves.csv';
-    else
+        iFile = 2;
+    elseif iFile == 3
         clear all
         filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240222 Pearl DC and PFM baselines\Cycles';
         filename = 'ExperimentRecords_Trapezoids.csv';
+        iFile = 3;
+    else
+        clear all
+        filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240521 Pearl eeVOR\Cycles';
+        filename = 'ExperimentRecords_SquareWaves_20240521.csv';
+        iFile = 4;
     end
 
 
@@ -69,6 +77,7 @@ for iBaseline = 1:length(tested_baselines)
                 uniqueExpDates = unique(expDate(baseline_idx));
 
                 baselineVal = str2double(extractBefore(thisBaseline,'pps'));
+%                 baselineVal = 0;
 
                 for iDate = 1:length(uniqueExpDates)
                     date_idx = find(expDate(baseline_idx) == uniqueExpDates(iDate));
@@ -77,6 +86,7 @@ for iBaseline = 1:length(tested_baselines)
                     count_zero = count_zero + 1;
 
                     baselineVal = str2double(extractBefore(thisBaseline,'uA'));
+%                     baselineVal = 0;
                     currentModulation = [-(stimAmp_anodic(baseline_idx))/max(stimAmp_anodic(baseline_idx));...
                         (stimAmp_cathodic(baseline_idx))/min(stimAmp_cathodic(baseline_idx))...
                         ]*100;
@@ -99,6 +109,7 @@ for iBaseline = 1:length(tested_baselines)
                 uniqueExpDates = unique(expDate(baseline_idx));
 
                 baselineVal = str2double(extractBefore(thisBaseline,'pps'));
+%                 baselineVal = 0;
 
                 for iDate = 1:length(uniqueExpDates)
                     date_idx = find(expDate(baseline_idx) == uniqueExpDates(iDate));
@@ -107,6 +118,7 @@ for iBaseline = 1:length(tested_baselines)
                     count_anodic = count_anodic + 1;
 
                     baselineVal = str2double(extractBefore(thisBaseline,'uA'));
+%                     baselineVal = 0;
                     currentModulation = [-(stimAmp_anodic(baseline_idx))/max(stimAmp_anodic(baseline_idx));...
                         (stimAmp_cathodic(baseline_idx))/min(stimAmp_cathodic(baseline_idx))...
                         ]*100;
@@ -131,6 +143,7 @@ for iBaseline = 1:length(tested_baselines)
             uniqueExpDates = unique(expDate(baseline_idx));
 
             baselineVal = str2double(extractBefore(thisBaseline,'pps'));
+%             baselineVal = 0;
 
             for iDate = 1:length(uniqueExpDates)
                 date_idx = find(expDate(baseline_idx) == uniqueExpDates(iDate));
@@ -139,6 +152,7 @@ for iBaseline = 1:length(tested_baselines)
                 count_cathodic = count_cathodic + 1;
 
                 baselineVal = str2double(extractBefore(thisBaseline,'uA'));
+%                 baselineVal = 0;
                 currentModulation = [-(stimAmp_anodic(newPlot_idx))/max(stimAmp_anodic(newPlot_idx));...
                     (stimAmp_cathodic(newPlot_idx))/min(stimAmp_cathodic(newPlot_idx))...
                     ]*100;
@@ -204,7 +218,11 @@ legend_txt_cathodicBaselines = legend_txt_cathodicBaselines(cathodicBaselines_so
 
 figure,
 tcl = tiledlayout(2,1,'TileSpacing','tight');
-title(tcl,'trapezoidal eeVOR','square wave, 500ms plateau, 1500ms between stim')
+if iFile == 3
+    title(tcl,'trapezoidal eeVOR','250ms stim, 150ms plateau, 750ms between stim')
+else
+    title(tcl,'trapezoidal eeVOR','square wave, 500ms plateau, 1500ms between stim')
+end
 
 
 % plot cathodic iDC baselines
@@ -220,7 +238,7 @@ errorbar(data_zeroDCBaseline(:,1), ...
         data_zeroDCBaseline(:,3), ...
         data_zeroDCBaseline(:,4), ...
         '-','Marker','.','MarkerSize',12)
-set(gca, 'ColorOrder', colormap(gray(5)))
+set(gca, 'ColorOrder', colormap(gray(size(data_cathodicBaselines,3)+2)))
 xline(0,'-','Color',[0.5 0.5 0.5])
 yline(0,'-','Color',[0.5 0.5 0.5])
 ylabel('maximum eye velocity (dps)')
@@ -243,11 +261,11 @@ errorbar(data_zeroDCBaseline(:,1), ...
         data_zeroDCBaseline(:,5), ...
         data_zeroDCBaseline(:,6), ...
         '-','Marker','.','MarkerSize',12)
-set(gca, 'ColorOrder', colormap(gray(5)))
+set(gca, 'ColorOrder', colormap(gray(size(data_cathodicBaselines,3)+2)))
 yline(90,'--','Color',[0.8 0.8 0.8])
 xline(0,'-','Color',[0.5 0.5 0.5])
 ylabel('misalignment (degs)')
-xlabel('current modulation (%)')
+xlabel('modulation (%)')
 ylim([0 200])
 box off
 
@@ -279,7 +297,7 @@ set(gca, 'ColorOrder', colormap(gray(5)))
 yline(1,'-','Color',[0.5 0.5 0.5])
 xline(0,'-','Color',[0.5 0.5 0.5])
 ylabel('normalized eye velocity')
-xlabel('current modulation (%)')
+xlabel('modulation (%)')
 box off
 title('cathodic iDC','inhibition     excitation')
 leg = legend([legend_txt_cathodicBaselines,legend_txt_zeroBaselines],'Location','north');

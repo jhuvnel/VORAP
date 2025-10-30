@@ -39,12 +39,22 @@ for iStim = 1:length(Data)
     plot(t_s,reshape(Data(iStim).rr_cyc',1,[]),'b','LineWidth',2)
 
     splitStr = split(Data(iStim).name(1:end-4),'-');
+    if isempty(splitStr{10})
+        splitStr{11} = ['-',splitStr{11}];
+        splitStr(10) = [];
+    end
     [animal, ~, expDate, animalCond, expType, lightCond, stimAxis, ...
         stimType, stimFreq, stimIntensity] = deal(splitStr{:});
     stimFreq = strrep(stimFreq,'p','.');
     
-    [~,s] = title(['All Saved Cycles, ',strjoin({stimAxis,stimFreq,stimIntensity},', ')],...
+    if contains(stimType, "Impulse")
+        [~,s] = title(['All Saved Cycles, ',strjoin({stimAxis,stimIntensity},', ')],...
         ['Date: ',strjoin({expDate,animalCond,expType,lightCond,stimType},', ')]);
+    else
+        [~,s] = title(['All Saved Cycles, ',strjoin({stimAxis,stimFreq,stimIntensity},', ')],...
+        ['Date: ',strjoin({expDate,animalCond,expType,lightCond,stimType},', ')]);
+    end
+
     s.FontSize = 8;
     s.Color = [0.5 0.5 0.5];
     ylabel('Eye Velocity (dps)')

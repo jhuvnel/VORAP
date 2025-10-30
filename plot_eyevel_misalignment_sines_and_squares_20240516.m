@@ -1,14 +1,15 @@
 %% plot square wave responses
     
-filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240417 Pearl eeVOR\Analyzed by KNM 20240516\Cycles';
-
-filename = 'ExperimentRecords_SquareWaves.csv';
-
-metaData = readtable(fullfile(filepath,filename));
+% filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240521 Pearl eeVOR\Cycles';
 % 
-% filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240216 Pearl DC trapz with baseline amphetamines\Cycles';
-% filename = 'ExperimentRecords_Trapezoids_20240408.csv';
+% filename = 'ExperimentRecords_SquareWaves_20240521.csv';
+% 
 % metaData = readtable(fullfile(filepath,filename));
+
+
+filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240417 Pearl eeVOR\Analyzed by KNM 20240516\Cycles';
+filename = 'ExperimentRecords_SquareWaves.csv';
+metaData = readtable(fullfile(filepath,filename));
 
 expDate = metaData.Date;
 stimOffset = metaData.StimOffset;
@@ -191,16 +192,16 @@ title(tcl,'trapezoidal eeVOR','square wave, 500ms plateau, 1500ms between stim')
 nexttile,
 hold on
 for icathodicBaseline = 1:length(legend_txt_cathodicBaselines)
-    p1(icathodicBaseline) = errorbar(data_cathodicBaselines(:,1,icathodicBaseline), ...
+    p1(icathodicBaseline) = errorbar(data_cathodicBaselines(:,2,icathodicBaseline), ...
         data_cathodicBaselines(:,3,icathodicBaseline), ...
         data_cathodicBaselines(:,4,icathodicBaseline), ...
         '-','Marker','.','MarkerSize',12);
 end
-p1(icathodicBaseline + 1) = errorbar(data_zeroDCBaseline(:,1), ...
+p1(icathodicBaseline + 1) = errorbar(data_zeroDCBaseline(:,2), ...
         data_zeroDCBaseline(:,3), ...
         data_zeroDCBaseline(:,4), ...
         '-','Marker','.','MarkerSize',12);
-% set(gca, 'ColorOrder', colormap(gray(5)))
+set(gca, 'ColorOrder', colormap(gray(5)))
 xline(0,'-','Color',[0.5 0.5 0.5])
 yline(0,'-','Color',[0.5 0.5 0.5])
 ylabel('maximum eye velocity (dps)')
@@ -214,16 +215,16 @@ box off
 nexttile,
 hold on
 for icathodicBaseline = 1:length(legend_txt_cathodicBaselines)
-    errorbar(data_cathodicBaselines(:,1,icathodicBaseline), ...
+    errorbar(data_cathodicBaselines(:,2,icathodicBaseline), ...
         data_cathodicBaselines(:,5,icathodicBaseline), ...
         data_cathodicBaselines(:,6,icathodicBaseline), ...
         '-','Marker','.','MarkerSize',12)
 end
-errorbar(data_zeroDCBaseline(:,1), ...
+errorbar(data_zeroDCBaseline(:,2), ...
         data_zeroDCBaseline(:,5), ...
         data_zeroDCBaseline(:,6), ...
         '-','Marker','.','MarkerSize',12)
-% set(gca, 'ColorOrder', colormap(gray(5)))
+set(gca, 'ColorOrder', colormap(gray(5)))
 yline(90,'--','Color',[0.8 0.8 0.8])
 xline(0,'-','Color',[0.5 0.5 0.5])
 ylabel('misalignment (degs)')
@@ -233,7 +234,7 @@ box off
 
 %% plot sine wave responses
 
-filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240417 Pearl eeVOR\Cycles';
+filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20240417 Pearl eeVOR\Analyzed by KNM 20240516\Cycles';
 filename = 'ExperimentRecords_SineAmplitudeSweep.csv';
 
 metaData = readtable(fullfile(filepath,filename));
@@ -286,7 +287,7 @@ errorbar(stim_amps, ...
     [flip(cathodicData_misalignment_nystagmusCorrected(:,2:2:end)') cathodicData_misalignment_nystagmusCorrected(:,1:2:end)'], ...
     [flip(cathodicData_misalignment_std_nystagmusCorrected(:,2:2:end)') cathodicData_misalignment_std_nystagmusCorrected(:,1:2:end)'],'Color','r')
 
-%%
+%% normalized responses based on 0uA baseline responses
 figure, 
 hold on
 for icathodicBaseline = 1:length(legend_txt_cathodicBaselines)
