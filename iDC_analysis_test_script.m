@@ -1,7 +1,7 @@
 
 
 
-filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20251028 Quin eeVOR';
+filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20251029 Quin eeVOR';
 % isDC = 1;
 % isAdaptation = 0;
 % isNystagmus = 0;
@@ -70,14 +70,22 @@ for iFolder = 1:length(foldernames)
             % if it is a PFM file, there are two flags per stim
             if contains(stimFlag.String(1,:),{'PFM','Pulse'})
                 stimFlag.String(contains(string(stimFlag.String),'trash'),:) = [];
-                str = deblank(stimFlag.String(1:2:end,:));
-                str2 = deblank(stimFlag.String(2:2:end,:));
+                
+                timeDiff = diff(stimFlag.Time);
+                str = deblank(stimFlag.String((find(timeDiff < 0.1)),:)); % find stim flags that are right next to each other - indicates PFM waveform starting
+                str2 = deblank(stimFlag.String((find(timeDiff < 0.1) + 1),:));
+                
+                % str = deblank(stimFlag.String(1:2:end,:));
+                % str2 = deblank(stimFlag.String(2:2:end,:));
                 strIdx = strfind(string(str),' [');
                 strIdx2 = strfind(string(str2),' [');
-                strIdx = [strIdx{:}];
-                strIdx2 = [strIdx2{:}];
+                if iscell(strIdx)
+                    strIdx = [strIdx{:}];
+                    strIdx2 = [strIdx2{:}];
+                end
                 stimFlag.String = [str(:,1:[strIdx]) str2(:,1:[strIdx2]-1)];
-                stimFlag.Time = stimFlag.Time(2:2:end);
+                % stimFlag.Time = stimFlag.Time(2:2:end);
+                stimFlag.Time = stimFlag.Time((find(timeDiff < 0.1) + 1));
             end
 
             switch stimTimingType
