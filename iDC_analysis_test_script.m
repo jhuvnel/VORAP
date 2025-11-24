@@ -1,7 +1,7 @@
 
 
 
-filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20251029 Quin eeVOR';
+filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20251124 Quin eeVOR';
 % isDC = 1;
 % isAdaptation = 0;
 % isNystagmus = 0;
@@ -18,7 +18,7 @@ for iFolder = 1:length(foldernames)
     if contains(filepath, 'Pearl') || contains(filepath, 'Long Trapz')
         animal = 'Pearl';
         implantSide = 'Left';
-        eyeCoilSide = 'Right';
+        eyeCoilSide = 'Right'; 
 
         expType = 'ElectricalOnly';
         lightCondition = 'Dark';
@@ -68,25 +68,66 @@ for iFolder = 1:length(foldernames)
             stimFlag.Time = TextMarkerInfo_raw.timings;
 
             % if it is a PFM file, there are two flags per stim
-            if contains(stimFlag.String(1,:),{'PFM','Pulse'})
-                stimFlag.String(contains(string(stimFlag.String),'trash'),:) = [];
-                
-                timeDiff = diff(stimFlag.Time);
-                str = deblank(stimFlag.String((find(timeDiff < 0.1)),:)); % find stim flags that are right next to each other - indicates PFM waveform starting
-                str2 = deblank(stimFlag.String((find(timeDiff < 0.1) + 1),:));
-                
-                % str = deblank(stimFlag.String(1:2:end,:));
-                % str2 = deblank(stimFlag.String(2:2:end,:));
-                strIdx = strfind(string(str),' [');
-                strIdx2 = strfind(string(str2),' [');
-                if iscell(strIdx)
-                    strIdx = [strIdx{:}];
-                    strIdx2 = [strIdx2{:}];
+            % if contains(stimFlag.String,{'PFM','Pulse'})
+            %         stimFlag.String(contains(string(stimFlag.String),'trash'),:) = [];
+            % 
+            %         % timeDiff = diff(stimFlag.Time);
+            %         % str = deblank(stimFlag.String((find(timeDiff < 0.1)),:)); % find stim flags that are right next to each other - indicates PFM waveform starting
+            %         % str2 = deblank(stimFlag.String((find(timeDiff < 0.1) + 1),:));
+            % 
+            %         str = deblank(stimFlag.String(1:2:end,:));
+            %         str2 = deblank(stimFlag.String(2:2:end,:));
+            %         strIdx = strfind(string(str),' [');
+            %         strIdx2 = strfind(string(str2),' [');
+            %         if iscell(strIdx)
+            %             strIdx = [strIdx{:}];
+            %             strIdx2 = [strIdx2{:}];
+            %         end
+            %         stimFlag.String = [str(:,1:[strIdx]) str2(:,1:[strIdx2]-1)];
+            %         stimFlag.Time = stimFlag.Time(2:2:end);
+            %         % stimFlag.Time = stimFlag.Time((find(timeDiff < 0.1) + 1));
+            % end
+            
+            strCell = cell(1,1);
+            timeNew = [];
+            ii = 0;
+            jj = 0;
+            while ii < length(stimFlag.Time)
+                ii = ii + 1;
+                if contains(stimFlag.String(ii,:),{'PFM','Pulse'})
+                    jj = jj + 1;
+                    stimFlag.String(contains(string(stimFlag.String),'trash'),:) = [];
+                    
+                    % timeDiff = diff(stimFlag.Time);
+                    % str = deblank(stimFlag.String((find(timeDiff < 0.1)),:)); % find stim flags that are right next to each other - indicates PFM waveform starting
+                    % str2 = deblank(stimFlag.String((find(timeDiff < 0.1) + 1),:));
+                    
+                    str = deblank(stimFlag.String(ii,:));
+                    str2 = deblank(stimFlag.String(ii+1,:));
+                    strIdx = strfind(string(str),' [');
+                    strIdx2 = strfind(string(str2),' [');
+                    if iscell(strIdx)
+                        strIdx = [strIdx{:}];
+                        strIdx2 = [strIdx2{:}];
+                    end
+                    % strCell{jj,1} = [str(:,1:[strIdx]) str2(:,1:[strIdx2]-1)];
+                    strCell{jj,1} = [str(:,1:[strIdx]) str2(:,1:end)];
+                    timeNew(jj) = stimFlag.Time(ii+1);
+                    % stimFlag.String(ii,:) = [str(:,1:[strIdx]) str2(:,1:[strIdx2]-1)];
+                    % stimFlag.String(ii+1,:) = []; % remove 2nd text string
+                    % stimFlag.Time(ii+1) = [];
+                    % stimFlag.Time = stimFlag.Time((find(timeDiff < 0.1) + 1));
+                    ii = ii + 1;
+                elseif contains(stimFlag.String(ii,:),{'DC'})
+                    jj = jj + 1;
+                    strCell{jj,1} = stimFlag.String(ii,:);
+                    timeNew(jj) = stimFlag.Time(ii);
                 end
-                stimFlag.String = [str(:,1:[strIdx]) str2(:,1:[strIdx2]-1)];
-                % stimFlag.Time = stimFlag.Time(2:2:end);
-                stimFlag.Time = stimFlag.Time((find(timeDiff < 0.1) + 1));
+
             end
+            
+            stimFlag.String = char(strCell);
+            stimFlag.Time = timeNew;
 
             switch stimTimingType
                 case 'TextMarker'
@@ -332,7 +373,7 @@ for iFolder = 1:length(foldernames)
             Data.CycleTiming = stimFlag.CycleTiming{iStimFlag};
 
             % save segment
-            str = stimFlag.String(iStimFlag,:);
+            str = deblank(stimFlag.String(iStimFlag,:));
             stimFileName = strrep(strrep(strrep(strrep(strrep(str,' ','_'),'/','_'),'*','_'),':','_'),'.','p');
             
             % we do not want to accidentally rewrite the segment name if
