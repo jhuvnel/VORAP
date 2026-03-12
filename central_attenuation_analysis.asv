@@ -8,4 +8,87 @@ TabiDCCARepeat = readtable('R:\Vesper, Evan\Monkey DC eeVOR Data\ExperimentRecor
 
 %% plot
 
-clf(figure(1))
+TabOut = getCAData(TabPulseCA);
+
+f1 = plotCAData(TabOut);
+
+%% function definitions
+
+function fig = plotCAData(DataTab)
+
+    dates = unique(DataTab.Date);
+    timepoints = {'30 min pre','20 min pre','10 min pre','pre-activation',...
+        'post-activation','10 min post','20 min post','30 min post',...
+        '40 min post','50 min post','60 min post'};
+
+    x = 1:length(timepoints);
+
+    fig = figure;
+    
+    for i = 1:length(dates)
+        subplot(2,1,1)
+        inds = DataTab.Date == dates(i) & matches(DataTab.StimType, 'DC');
+        errorbar(x,DataTab.EyeVel_Magnitude_Cathodic_avg(inds),DataTab.EyeVel_Magnitude_Cathodic_std(inds),DataTab.EyeVel_Magnitude_Cathodic_std(inds));
+        hold on
+
+        subplot(2,1,2)
+        inds = DataTab.Date == dates(i) & matches(DataTab.StimType, 'PFM');
+        errorbar(x,DataTab.EyeVel_Magnitude_Cathodic_avg(inds),DataTab.EyeVel_Magnitude_Cathodic_std(inds),DataTab.EyeVel_Magnitude_Cathodic_std(inds));
+        hold on
+        
+    end
+    
+
+    subplot(2,1,1)
+    yline(4.5,'k--')
+    xticklabels(timepoints)
+    ylabel('Max Eye Vel. (dps)')
+    ylim([0 70])
+    
+    subplot(2,1,1)
+    yline(4.5,'k--')
+    xticklabels(timepoints)
+    ylabel('Max Eye Vel. (dps)')
+    ylim([0 70])
+
+
+end
+
+function TabOut = getCAData(TabIn)
+    dates = unique(TabIn.Date);
+    timepoints = {'30 min pre','20 min pre','10 min pre','pre-activation',...
+        'post-activation','10 min post','20 min post','30 min post',...
+        '40 min post','50 min post','60 min post'};
+    varNames = {'Timepoint','Date','StimAxis','StimType',...
+        'StimAmplitude1','StimAmplitude2','StimRate1',...
+        'EyeVel_Magnitude_Cathodic_avg','EyeVel_Magnitude_Cathodic_std',...
+        'EyeVel_Misalignment_Cathodic_avg','EyeVel_Misalignment_Cathodic_std'};
+    
+    TabOut = table('Size',[length(dates)*length(timepoints)*2, 11], ...
+        'VariableTypes', {'char','double','char','char','double','double','double','double','double','double','double'} , ...
+        'VariableNames', varNames);
+
+    % TabOut = TabIn(1,:);
+    % TabOut(1,:) = [];
+
+    for i = 1:length(dates)
+        for j = 1:length(timepoints)
+            toInsert = TabIn(TabIn.Date == dates(i) & matches(TabIn.Timepoint,timepoints{j}) & matches(TabIn.StimType,'DC'),varNames);
+            toInsert.Timepoint{1} = timepoints{j};
+            toInsert.Date(1) = dates(i);
+            toInsert.StimType{1} = 'DC';
+            TabOut((i-1)*length(timepoints)+j,:) = toInsert;
+
+        end
+    end
+    for i = 1:length(dates)
+        for j = 1:length(timepoints)
+            toInsert = TabIn(TabIn.Date == dates(i) & matches(TabIn.Timepoint,timepoints{j}) & matches(TabIn.StimType,'PFM'),varNames);
+            toInsert.Timepoint{1} = timepoints{j};
+            toInsert.Date(1) = dates(i);
+            toInsert.StimType{1} = 'PFM';
+            TabOut(length(dates)*length(timepoints)+(i-1)*length(timepoints)+j,:) = toInsert;
+
+        end
+    end
+end
