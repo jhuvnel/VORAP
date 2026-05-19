@@ -3,7 +3,7 @@
 close all
 
 % TabExc = readtable("ExperimentRecords_62K_LA_CC1_Square_MaxiDCvsPFM_all_excitatory.csv");
-TabExc = readtable("ExperimentRecords_62K_LP_CC1_Square_MaxiDCvsPFM_all_excitatory.csv");
+TabExc = readtable("ExperimentRecords_62K_LA_CC1_Square_MaxiDCvsPFM_all_excitatory.csv");
 TabInh = readtable("ExperimentRecords_62K_LA_CC1_Square_MaxiDCvsPFM_all_inhibitory.csv");
 
 % TabExc = sort(TabExc, )
@@ -23,30 +23,30 @@ err = nan(nDays,3, 2);
 
 for i = 1:nDays
     
-    PFM0baseinds = TabExc.Date == dates(i) & TabExc.StimOffset == 0 & TabExc.Phase1Dur == 600 & strcmp(TabExc.StimType, 'PFM');
+    PFM0baseinds = TabExc.Date == dates(i) & TabExc.StimOffset == 0 & TabExc.Phase1Dur == 300 & strcmp(TabExc.StimType, 'PFM');
     data(i,1,1) = TabExc.EyeVel_Magnitude_Cathodic_avg_nystagmusCorrected(PFM0baseinds);
     sd(i,1,1) = TabExc.EyeVel_Magnitude_Cathodic_std_nystagmusCorrected(PFM0baseinds);
     n(i,1,1) = TabExc.NumCyclesKeep(PFM0baseinds);
     err(i,1,1) = sd(i,1,1)/sqrt(n(i,1,1)); % SEM = SD/sqrt(n)
 
-    PFM100baseinds = TabExc.Date == dates(i) & TabExc.StimOffset == 100 & TabExc.Phase1Dur == 600 &  strcmp(TabExc.StimType, 'PFM'); 
+    PFM100baseinds = TabExc.Date == dates(i) & TabExc.StimOffset == 100 & TabExc.Phase1Dur == 300 &  strcmp(TabExc.StimType, 'PFM'); 
     data(i,2,1) = TabExc.EyeVel_Magnitude_Cathodic_avg_nystagmusCorrected(PFM100baseinds);
     sd(i,2,1) = TabExc.EyeVel_Magnitude_Cathodic_std_nystagmusCorrected(PFM100baseinds);
     n(i,2,1) = TabExc.NumCyclesKeep(PFM100baseinds);
     err(i,2,1) = sd(i,2,1)/sqrt(n(i,2,1)); % SEM = SD/sqrt(n)
 
-    iDCExcinds = TabExc.Date == dates(i) & TabExc.StimAmplitude1 == -800 & strcmp(TabExc.StimType, 'DC');
+    iDCExcinds = TabExc.Date == dates(i) & TabExc.StimAmplitude1 == -576 & strcmp(TabExc.StimType, 'DC');
     data(i,3,1) = TabExc.EyeVel_Magnitude_Cathodic_avg_nystagmusCorrected(iDCExcinds);
     sd(i,3,1) = TabExc.EyeVel_Magnitude_Cathodic_std_nystagmusCorrected(iDCExcinds);
     n(i,3,1) = TabExc.NumCyclesKeep(iDCExcinds);
     err(i,3,1) = sd(i,3,1)/sqrt(n(i,3,1)); % SEM = SD/sqrt(n)
 
     
-    PFM0baseinds = TabInh.Date == dates(i) & TabInh.StimOffset == 0 & TabInh.Phase1Dur == 300 &  strcmp(TabInh.StimType, 'PFM');
-    data(i,1,2) = TabInh.EyeVel_Magnitude_Anodic_avg_nystagmusCorrected(PFM0baseinds);
-    sd(i,1,2) = TabInh.EyeVel_Magnitude_Anodic_std_nystagmusCorrected(PFM0baseinds);
-    n(i,1,2) = TabExc.NumCyclesKeep(PFM0baseinds);
-    err(i,1,2) = sd(i,1,2)/sqrt(n(i,1,2)); % SEM = SD/sqrt(n)
+    % PFM0baseinds = TabInh.Date == dates(i) & TabInh.StimOffset == 0 & TabInh.Phase1Dur == 300 &  strcmp(TabInh.StimType, 'PFM');
+    % data(i,1,2) = TabInh.EyeVel_Magnitude_Anodic_avg_nystagmusCorrected(PFM0baseinds);
+    % sd(i,1,2) = TabInh.EyeVel_Magnitude_Anodic_std_nystagmusCorrected(PFM0baseinds);
+    % n(i,1,2) = TabExc.NumCyclesKeep(PFM0baseinds);
+    % err(i,1,2) = sd(i,1,2)/sqrt(n(i,1,2)); % SEM = SD/sqrt(n)
 
     PFM100baseinds = TabInh.Date == dates(i) & TabInh.StimOffset == 100 & TabInh.Phase1Dur == 300 & strcmp(TabInh.StimType, 'PFM');
     data(i,2,2) = TabInh.EyeVel_Magnitude_Anodic_avg_nystagmusCorrected(PFM100baseinds);
@@ -83,6 +83,7 @@ semTot = sdTot./sqrt(nDays);
 
 % inhibitory pfm baseline vs DC baseline
 [~, pval4, ci4, stats4] = ttest(data(:,2,2), data(:,3,2));
+% [~, pval4, ci4, stats4] = ttest(data(:,2,2), data(:,3,2),'tail','left');
 
 aovExc = anova(data(:,:,1));
 % aovInh = anova(data(:,[2 3],2));

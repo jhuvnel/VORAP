@@ -1,7 +1,7 @@
 
 
 
-filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20251210 Quin eeVOR';
+filepath = 'R:\Vesper, Evan\Monkey DC eeVOR Data\20260403 Quin eeVOR';
 % isDC = 1;
 % isAdaptation = 0;
 % isNystagmus = 0;
@@ -66,6 +66,20 @@ for iFolder = 1:length(foldernames)
             [TextMarkerInfo_raw,h2] = SONGetChannel(fid,30);
             stimFlag.String = [char(TextMarkerInfo_raw.text)]';
             stimFlag.Time = TextMarkerInfo_raw.timings;
+            % fix for segmenting this specific file due to missing text marker as data was collected 
+            if matches(filepath,'R:\Vesper, Evan\Monkey DC eeVOR Data\20260210 Quin eeVOR\20260210 Quin eeVOR excitatory')...
+                    && iFile == 2
+                newStimStrings = '';
+                newStimTimes = [];
+                newStimStrings(1:2,:) = stimFlag.String(1:2,:);
+                newStimStrings(3,:) = ['K1 S2 R4 Pulse950 600/25/600 [15:06:58.776]', repmat(' ',1,37)];
+                newStimStrings(4:size(stimFlag.String,1)+1,:) = stimFlag.String(3:end,:);
+                newStimTimes(1:2) = stimFlag.Time(1:2);
+                newStimTimes(3) = stimFlag.Time(3) - 0.05;
+                newStimTimes(4:length(stimFlag.Time)+1) = stimFlag.Time(3:end);
+                stimFlag.String = newStimStrings;
+                stimFlag.Time = newStimTimes;
+            end
 
             % if it is a PFM file, there are two flags per stim
             % if contains(stimFlag.String,{'PFM','Pulse'})
@@ -87,16 +101,20 @@ for iFolder = 1:length(foldernames)
             %         stimFlag.Time = stimFlag.Time(2:2:end);
             %         % stimFlag.Time = stimFlag.Time((find(timeDiff < 0.1) + 1));
             % end
+
             
+            stimFlag.Time(contains(string(stimFlag.String),'trash'),:) = [];
+            stimFlag.String(contains(string(stimFlag.String),'trash'),:) = [];
+
             strCell = cell(1,1);
             timeNew = [];
             ii = 0;
             jj = 0;
             while ii < length(stimFlag.Time)
                 ii = ii + 1;
-                if contains(stimFlag.String(ii,:),{'PFM','Pulse'})
+                if contains(stimFlag.String(ii,:),{'PFM','Pulse'}) && ii < length(stimFlag.Time)
                     jj = jj + 1;
-                    stimFlag.String(contains(string(stimFlag.String),'trash'),:) = [];
+                    
                     
                     % timeDiff = diff(stimFlag.Time);
                     % str = deblank(stimFlag.String((find(timeDiff < 0.1)),:)); % find stim flags that are right next to each other - indicates PFM waveform starting
